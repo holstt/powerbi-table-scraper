@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "powerbi-table-scraper"
+version = "0.1.0"
+description = ""
+authors = ["holstt <45661813+holstt@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "powerbi_table_scraper"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+selenium = "^4.12.0"
+pydantic = "^2.3.0"
+pyyaml = "^6.0.1"
+pandas = "^2.1.0"
+xlsxwriter = "^3.1.2"
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^5.13.2"
+isort = "^5.12.0"
+black = "^23.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pyright]
+typeCheckingMode = "strict"
+
+reportUnknownVariableType = "none"
+
+# In strict, but don't show these errors
+reportUnusedImport = "none"
+reportUnusedVariable = "none"
+reportUnusedFunction = "none"
+reportUnknownMemberType = "none"
+
+
+# Not in strict, but show these errors
+# reportMissingSuperCall = "error"
+reportCallInDefaultInitializer = "error"
+reportImplicitOverride = "info"
+reportImplicitStringConcatenation = "error"
+reportPropertyTypeMismatch = "error"
+reportShadowedImports = "error"
+reportUninitializedInstanceVariable = "error"
+reportUnnecessaryTypeIgnoreComment = "info"

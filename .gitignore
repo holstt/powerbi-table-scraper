@@ -1,0 +1,11 @@
+.vscode
+config*.yml
+!config.example*
+output
+dist
+build
+__pycache__
+*.csv
+*.log
+*.txt
+*.xlsx

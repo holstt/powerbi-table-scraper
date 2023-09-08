@@ -1,0 +1,12 @@
+mode: gui # or console
+# max_rows: 3 # Uncomment to limit the number of rows scraped (e.g. for testing)
+
+gui:
+    language: en # en or da
+    program_name: PowerBI Table Scraper
+
+console:
+    url: https://app.powerbi.com/XXXXX # URL to the Power BI report
+    is_headless: false # 'true' hides the the browser window
+    output_path: /path/to/output.ext # Any file extension will be ignored - is determined by output_format
+    output_format: excel # excel or csv

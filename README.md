@@ -3,6 +3,7 @@
 [![python](https://img.shields.io/badge/Python-3.11-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 
 Python tool for scraping Power BI tables into an Excel or CSV file using Selenium. The tool can be run as a console application or with a GUI.
 
@@ -11,7 +12,7 @@ Python tool for scraping Power BI tables into an Excel or CSV file using Seleniu
 ## Prerequisites
 
 -   [Python 3.11](https://www.python.org/downloads/release/python-311/)
--   [Poetry](https://python-poetry.org/docs/)
+-   [Poetry](https://python-poetry.org/docs/) (optional)
 
 ## Installation
 
@@ -27,6 +28,8 @@ cd powerbi-table-scraper
 ```bash
 poetry install
 ```
+
+For non-poetry users, a `requirements.txt` file is also provided.
 
 ## Configuration
 

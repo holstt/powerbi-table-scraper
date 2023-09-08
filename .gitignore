@@ -7,5 +7,4 @@ build
 __pycache__
 *.csv
 *.log
-*.txt
 *.xlsx

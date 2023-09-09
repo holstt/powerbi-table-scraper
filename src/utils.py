@@ -12,6 +12,10 @@ def setup_logging(level: int = logging.INFO):
     )
     logging.Formatter.converter = time.gmtime  # Use UTC
 
+    # Avoid getting debug logs from external modules
+    logging.getLogger("selenium").setLevel(logging.INFO)
+    logging.getLogger("urllib3").setLevel(logging.INFO)
+
 
 def get_config_path_from_args():
     args = get_args()

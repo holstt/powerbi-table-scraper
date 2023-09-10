@@ -82,6 +82,9 @@ class PowerBiScraper:
         logger.debug("Scraping complete")
         return table
 
+    def close(self):
+        self._driver.close()
+
     # If dashboard embedded in page, it will be in an iframe -> switch to iframe
     def _switch_if_iframe(self):
         # Disable wait time to avoid waiting for iframe to appear
@@ -219,7 +222,7 @@ class PowerBiScraper:
 
             for checked_element in checked_elements:
                 actions.click(checked_element).pause(ACTION_WAIT)
-                logger.debug("Will uncheck checkbox with text:", checked_element.text)
+                logger.debug(f"Will uncheck checkbox with text: {checked_element.text}")
 
             # Move to last visible element and scroll down using down key to load more elements
             last_el = all_elements[-1]

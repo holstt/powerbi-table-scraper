@@ -24,7 +24,11 @@ def main(app_config: AppConfig):
         # Use app_config.gui
         # Receive input/options from GUI
         result = scrape(
-            ScraperOptions(url="https://www.google.com", is_console_enabled=False)
+            ScraperOptions(
+                url="https://www.google.com",
+                is_console_enabled=False,
+                should_uncheck_filter=app_config.should_uncheck_filter,
+            )
         )
     elif app_config.mode == Mode.CONSOLE:
         if app_config.console is None:
@@ -35,6 +39,7 @@ def main(app_config: AppConfig):
             ScraperOptions(
                 url=app_config.console.url.unicode_string(),
                 is_headless=app_config.console.is_headless,
+                should_uncheck_filter=app_config.should_uncheck_filter,
             )
         )
 
@@ -56,5 +61,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        logger.exception(f"Unhandled exception occurred: {e}")
+        logger.exception(f"Unhandled exception occurred: {e}", exc_info=True)
         raise e

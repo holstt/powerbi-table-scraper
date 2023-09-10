@@ -12,7 +12,7 @@ def save_csv(df: pd.DataFrame, path: Path) -> None:
 
 def save_excel(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_excel(path, index=False)
+    df.to_excel(path, index=False)  # type: ignore
 
 
 def save_table(df: pd.DataFrame, path: Path, format: OutputFormat):

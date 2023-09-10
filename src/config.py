@@ -32,6 +32,7 @@ class ConsoleConfig(BaseModel):
 class AppConfig(BaseModel):
     mode: Mode
     max_rows: Optional[int] = None
+    should_uncheck_filter: bool = False
     gui: Optional[GuiConfig] = None
     console: Optional[ConsoleConfig] = None
 

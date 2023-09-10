@@ -1,4 +1,5 @@
 # powerbi-table-scraper
+
 [![ci](https://github.com/holstt/powerbi-table-scraper/actions/workflows/ci.yml/badge.svg)](https://github.com/holstt/powerbi-table-scraper/actions/workflows/ci.yml)
 [![python](https://img.shields.io/badge/Python-3.11-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
@@ -44,7 +45,8 @@ To set up configuration:
 
 ```yml
 mode: gui # or console
-# max_rows: 3 # Uncomment to limit the number of rows scraped (e.g. for testing)
+should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck it before scraping
+# max_rows: 3 # OPTIONAL (default=None): Uncomment to limit the number of rows scraped (e.g. for testing)
 
 gui:
     language: en # en or da

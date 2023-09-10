@@ -27,14 +27,14 @@ build-backend = "poetry.core.masonry.api"
 [tool.pyright]
 typeCheckingMode = "strict"
 
-reportUnknownVariableType = "none"
+reportUnknownVariableType = "error"
 reportMissingTypeStubs = "information"
 
 # In strict, but don't show these errors
 reportUnusedImport = "none"
 reportUnusedVariable = "none"
 reportUnusedFunction = "none"
-reportUnknownMemberType = "none"
+reportUnknownMemberType = "error"
 
 
 # Not in strict, but show these errors

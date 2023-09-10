@@ -1,7 +1,8 @@
 # EXAMPLE CONFIG FILE
 
 mode: gui # or console
-# max_rows: 3 # Uncomment to limit the number of rows scraped (e.g. for testing)
+should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck all checkboxes before scraping
+# max_rows: 3 # OPTIONAL (default=None): Uncomment to limit the number of rows scraped (e.g. for testing)
 
 gui:
     language: en # en or da

@@ -18,15 +18,15 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v3
 
+            - run: |
+                  pip install poetry
+                  poetry config virtualenvs.create false
+
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
                   python-version: "3.11"
                   cache: "poetry"
-
-            - run: |
-                  pip install poetry
-                  poetry config virtualenvs.create false
 
             # Install all deps. for pyright to be able to run type checking
             - run: poetry install

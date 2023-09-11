@@ -50,9 +50,9 @@ class ScraperOptions:
     should_uncheck_filter: bool = False
 
 
-@dataclass(frozen=True)
-class ScrapeResult:
-    table: pd.DataFrame
+# @dataclass(frozen=True)
+# class ScrapeResult:
+#     table: pd.DataFrame
 
 
 class PowerBiScraper:

@@ -8,7 +8,7 @@
 
 Python tool for scraping Power BI tables into an Excel or CSV file using Selenium. The tool can be run as a console application or with a GUI.
 
-![**Placeholder for screenshot/GIF of GUI**](path-to-screenshot-or-gif)
+<img src="./docs/gui_screenshot.png" alt="GUI Screenshot" width="400"/>
 
 ## Prerequisites
 
@@ -45,15 +45,15 @@ To set up configuration:
 
 ```yml
 mode: gui # or console
-should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck it before scraping
+should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck all checkboxes before scraping
 # max_rows: 3 # OPTIONAL (default=None): Uncomment to limit the number of rows scraped (e.g. for testing)
+url: https://app.powerbi.com/XXXXX # # URL to the Power BI report. IF mode=gui, this is the default URL but can be changed in the GUI.
 
 gui:
     language: en # en or da
     program_name: PowerBI Table Scraper
 
 console:
-    url: https://app.powerbi.com/XXXXX # URL to the Power BI report
     is_headless: false # 'true' hides the the browser window
     output_path: /path/to/output.ext # Any file extension will be ignored - is determined by output_format
     output_format: excel # excel or csv

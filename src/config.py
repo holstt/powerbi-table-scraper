@@ -23,13 +23,13 @@ class GuiConfig(BaseModel):
 
 
 class ConsoleConfig(BaseModel):
-    url: HttpUrl
     is_headless: bool
     output_format: OutputFormat
     output_path: Path
 
 
 class AppConfig(BaseModel):
+    url: HttpUrl
     mode: Mode
     max_rows: Optional[int] = None
     should_uncheck_filter: bool = False

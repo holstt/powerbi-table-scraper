@@ -1,26 +1,16 @@
 import logging
-from dataclasses import dataclass
 from pathlib import Path
-from re import S
-from time import sleep
-from typing import Optional
+from typing import Callable, Optional
 
 import pandas as pd
 
 from src import config, utils
 from src.config import AppConfig, Mode, OutputFormat
-from src.save import save_csv, save_table
+from src.gui import ScraperGui, UiSubmitArgs
+from src.save import save_table
 from src.scraper import PowerBiScraper, ScraperOptions
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class GuiInput:
-    url: str
-    is_headless: bool
-    output_path: Path
-    output_format: OutputFormat
 
 
 def main(app_config: AppConfig):
@@ -32,7 +22,33 @@ def main(app_config: AppConfig):
         case Mode.CONSOLE:
             use_console(app_config)
 
-    input("Press enter to exit")
+    # input("Press enter to exit")
+
+
+def use_gui(app_config: AppConfig):
+    if app_config.gui is None:
+        raise ValueError("Mode is set to GUI but GUI config is missing")
+    logger.debug(f"Using GUI config: {app_config.gui}")
+
+    def on_run_scrape(
+        ui_args: UiSubmitArgs, on_scrape_complete: Callable[[pd.DataFrame], None]
+    ):
+        table = scrape(
+            ScraperOptions(
+                url=ui_args.url,
+                is_console_enabled=False,
+                should_uncheck_filter=app_config.should_uncheck_filter,
+                is_headless=ui_args.is_headless,
+            ),
+            ui_args.output_path,
+            ui_args.output_format,
+            max_rows=app_config.max_rows,
+        )
+        # Notify UI that scrape is complete
+        on_scrape_complete(table)
+
+    ui = ScraperGui(app_config.gui, app_config.url.unicode_string(), on_run_scrape)
+    ui.show()
 
 
 def use_console(app_config: AppConfig):
@@ -41,9 +57,9 @@ def use_console(app_config: AppConfig):
     logger.debug(f"Using CONSOLE config: {app_config.console}")
 
     console_config = app_config.console
-    result = scrape(
+    table = scrape(
         ScraperOptions(
-            url=console_config.url.unicode_string(),
+            url=app_config.url.unicode_string(),
             is_headless=console_config.is_headless,
             should_uncheck_filter=app_config.should_uncheck_filter,
         ),
@@ -53,39 +69,18 @@ def use_console(app_config: AppConfig):
     )
 
 
-def use_gui(app_config: AppConfig):
-    if app_config.gui is None:
-        raise ValueError("Mode is set to GUI but GUI config is missing")
-    logger.debug(f"Using GUI config: {app_config.gui}")
-
-    gui_config = app_config.gui
-    # TODO: Receive input/options from GUI
-    # Pass on_gui_submit to GUI as callback
-    # Use app_config.gui
-
-    def on_gui_submit(values: GuiInput):
-        result = scrape(
-            ScraperOptions(
-                url=values.url,
-                is_console_enabled=False,
-                should_uncheck_filter=app_config.should_uncheck_filter,
-            ),
-            values.output_path,
-            values.output_format,
-        )
-
-
 def scrape(
     options: ScraperOptions,
     save_path: Path,
     save_format: OutputFormat,
     max_rows: Optional[int] = None,
-):
+) -> pd.DataFrame:
     scraper = PowerBiScraper(options)
     table = scraper.scrape(max_rows=max_rows)
-    # scraper.close()
+    scraper.close()  # XXX: Choose to browser keep open?
     save_path = save_table(table, save_path, save_format)
-    logger.info(f"Table saved to {save_path}")
+    logger.info(f"Table saved to {save_path.absolute()}")
+    return table
 
 
 if __name__ == "__main__":

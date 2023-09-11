@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import time
 from pathlib import Path
@@ -34,3 +35,10 @@ def get_args():
     )
     args = vars(ap.parse_args())
     return args
+
+
+# Load language strings from a JSON file
+def load_language(lang_code: str) -> dict[str, str]:
+    with open(f"./locales/{lang_code}.json", "r", encoding="utf-8") as file:
+        lang: dict[str, str] = json.load(file)
+        return lang

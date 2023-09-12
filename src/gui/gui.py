@@ -2,19 +2,37 @@ import logging
 import os
 import random
 import threading
+import time
 import tkinter as tk
 from dataclasses import dataclass
 from pathlib import Path
 from threading import ExceptHookArgs, Thread
 from tkinter import filedialog, messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
 from typing import Any, Callable
 
 import pandas as pd
+from typing_extensions import override
 
 import src.utils as utils
 from src.config import GuiConfig, OutputFormat
 
 logger = logging.getLogger(__name__)
+
+
+# Writes the log to the given text widget
+class LogToWidgetHandler(logging.Handler):
+    def __init__(self, widget: tk.Text):
+        logging.Handler.__init__(self)
+        self.text_widget = widget
+
+    @override
+    def emit(self, record: logging.LogRecord):
+        # Enable editing of the text widget in order to insert the log
+        self.text_widget.configure(state=tk.NORMAL)
+        self.text_widget.insert(tk.END, record.msg + "\n")
+        self.text_widget.configure(state=tk.DISABLED)
+        self.text_widget.see(tk.END)  # Scroll to the bottom of the text widget
 
 
 class UiState:
@@ -59,14 +77,6 @@ class ScraperGui:
         self.root.tk.call("source", THEME_PATH)
         style.theme_use(THEME_NAME)
 
-        # TODO: Add log stream to program output frame
-        # program_output_frame = ttk.LabelFrame(
-        #     self.root, text="Program Output", padding=(20, 10)
-        # )
-        # program_output_frame.grid(
-        #     row=1, column=0, padx=(20, 10), pady=10, sticky="nsew"
-        # )
-
         # Init UI state variables
         self.state = UiState(
             url=default_url,
@@ -88,6 +98,7 @@ class ScraperGui:
             self.path_browse_button,
         ) = self.create_path_frame(main_frame)
         self.headless_checkbox = self._create_headless_checkbox(main_frame)
+        self.log_frame = self._create_log_frame(main_frame)
         self.run_button = self._create_run_button(main_frame)
 
         # Bind variable changes to widget updates
@@ -109,6 +120,35 @@ class ScraperGui:
         # url_entry.configure(background="purple")
         # url_frame.configure(background="cyan")
 
+    def _create_log_frame(self, main_frame: ttk.Frame):
+        log_frame = ttk.Frame(
+            main_frame,
+        )
+        # Label
+        log_label = ttk.Label(log_frame, text=self.lang["label_program_log"] + ":")
+        log_label.pack(anchor="w", pady=(0, 5))
+
+        # Border: Use entry to get themed border as no Text ttk widget exists
+        log_border = ttk.Entry(log_frame, state="readonly")
+        log_border.pack(anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+
+        # Text with scrollbar and no border
+        log_text = ScrolledText(
+            log_border,
+            state=tk.DISABLED,
+            border=0,
+            wrap="word",
+            height=10,  # XXX Setting height will cause widget to expand (fill) correctly without pushing widgets below it out of frame. Not sure why
+        )
+        log_text.pack(padx=5, pady=5, anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+
+        log_frame.pack(pady=10, anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+
+        # Connect to root logger
+        root_logger = logging.getLogger()
+        handler = LogToWidgetHandler(log_text)
+        root_logger.addHandler(handler)
+
     def _center_window(self):
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -119,12 +159,6 @@ class ScraperGui:
 
         self.root.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
 
-    # def _on_output_path_changed(self, *args: Any):
-    #     if self.state.output_path.get() == "":
-    #         self.path_entry.configure(text=self.lang["path_placeholder"], fg="grey")
-    #     else:
-    #         self.path_entry.configure(text=self.state.output_path.get(), fg="black")
-
     def _on_submit_args_changed(self, *args: Any):
         # Do some basic input validation
         is_input_valid = (
@@ -134,7 +168,7 @@ class ScraperGui:
             and not self.state.output_path.get().strip() == ""
         )
         # Enable run button if input is valid
-        self.run_button.configure(state="normal" if is_input_valid else "disabled")
+        self.run_button.configure(state=tk.NORMAL if is_input_valid else tk.DISABLED)
 
     def show(self):
         try:
@@ -143,36 +177,15 @@ class ScraperGui:
             self._show_error(e)
 
     def create_main_frame(self, root: tk.Tk) -> ttk.Frame:
-        self.root.grid_rowconfigure(1, weight=1)
-        self.root.grid_columnconfigure(1, weight=1)
-
-        MARGIN = 20
-
-        # Create spacers for margins
-        ttk.Frame(self.root, width=MARGIN + 10).grid(
-            row=0, column=0, sticky="nsew"
-        )  # Left spacer
-        ttk.Frame(self.root, width=MARGIN + 10).grid(
-            row=0, column=2, sticky="nsew"
-        )  # Right spacer
-        ttk.Frame(self.root, height=MARGIN).grid(
-            row=0, column=1, sticky="nsew"
-        )  # Top spacer
-        ttk.Frame(self.root, height=MARGIN).grid(
-            row=2, column=1, sticky="nsew"
-        )  # Bottom spacer
-
-        main_frame = ttk.Frame(self.root)
-        main_frame.grid(row=1, column=1, sticky="nsew")
-        main_frame.pack_propagate(
-            False
-        )  # Prevent widgets from determining the frame's size
-
+        main_frame = ttk.Frame(root)
+        main_frame.pack(pady=10, padx=30, fill=tk.BOTH, expand=True)
         return main_frame
 
     def create_title(self, main_frame: ttk.Frame) -> ttk.Label:
         title_label = ttk.Label(
-            main_frame, text=self.config.program_name, font=("Arial", 16)
+            main_frame,
+            text=self.config.program_name,
+            font=("Arial", 16),
         )
         title_label.pack(pady=10, anchor="center")
         return title_label
@@ -195,19 +208,6 @@ class ScraperGui:
         path_label = ttk.Label(
             path_frame, text=self.lang["label_save_to_path"] + ":", anchor="w"
         )
-
-        # # Make a clickable entry label to select a path
-        # path_entry = tk.Label(
-        #     path_frame,
-        #     relief="sunken",
-        #     anchor="w",
-        #     fg="grey",
-        #     padx=2,
-        #     textvariable=self.state.output_path,
-        # )
-
-        # # Make label act like a button
-        # path_entry.bind("<Button-1>", self._browse_file_location)
 
         # Make a readonly entry
         path_entry = ttk.Entry(
@@ -277,7 +277,7 @@ class ScraperGui:
             text=self.lang["button_run"],
             width=20,
             command=on_run_button_click,
-            state="disabled",
+            state=tk.DISABLED,
             style="Accent.TButton",
         )
         run_button.pack(pady=10, anchor="center")
@@ -285,6 +285,7 @@ class ScraperGui:
 
     # Open a file dialog to select a file location
     def _browse_file_location(self, *args: Any):
+        logger.debug("Opening file dialog to select a file location")
         filepath_str = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
@@ -345,7 +346,7 @@ class ScraperGui:
 
     # Updates the widgets when working (we cant bind state variables directly to widget states, it seems?)
     def _on_working_changed(self, *args: Any):
-        status = "disabled" if self.state.is_working.get() else "normal"
+        status = tk.DISABLED if self.state.is_working.get() else tk.NORMAL
         logger.debug(f"Setting widgets to status: {status}")
         self.url_entry.configure(state=status)
         # self.path_entry.configure(state=status)

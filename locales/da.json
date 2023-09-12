@@ -4,7 +4,7 @@
     "placeholder_save_to_path": "Vælg placering...",
     "button_browse": "Gennemse",
     "label_run_headless": "Kør i baggrunden (uden browser)",
-    "label_program_log": "Programlog:",
+    "label_program_log": "Programlog",
     "button_run": "Kør",
     "title_task_complete": "Opgave Fuldført",
     "message_task_complete": "Scraping er færdig: Fandt {rows_scraped} rækker og {columns_scraped} kolonner. Vil du åbne filplaceringen for den gemte tabel?",

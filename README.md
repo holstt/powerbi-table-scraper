@@ -69,7 +69,7 @@ python main.py
 
 For the GUI mode, follow the on-screen instructions. For the Console mode, scraping will start automatically based on the settings defined in `config.yml`.
 
-### Creating a Standalone Executable with PyInstaller
+## Creating a Standalone Executable with PyInstaller
 
 To create a standalone executable of the tool, run the following command:
 

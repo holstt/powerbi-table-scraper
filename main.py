@@ -6,7 +6,7 @@ import pandas as pd
 
 from src import config, utils
 from src.config import AppConfig, Mode, OutputFormat
-from src.gui import ScraperGui, UiSubmitArgs
+from src.gui.gui import ScraperGui, UiSubmitArgs
 from src.save import save_table
 from src.scraper import PowerBiScraper, ScraperOptions
 

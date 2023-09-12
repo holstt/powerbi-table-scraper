@@ -4,7 +4,7 @@ import random
 import tkinter as tk
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import Button, Frame, Label, filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from typing import Any, Callable
 
 import pandas as pd
@@ -33,6 +33,8 @@ class UiSubmitArgs:
 
 WIDTH = 600
 HEIGHT = 500
+THEME_NAME = "forest-light"
+THEME_PATH = f"./src/gui/theme/{THEME_NAME}.tcl"
 
 
 class ScraperGui:
@@ -50,7 +52,21 @@ class ScraperGui:
         self.root.title(config.program_name)
         self.root.minsize(WIDTH, HEIGHT)
 
-        # Init state
+        # Load theme
+        style = ttk.Style(self.root)
+        self.root.tk.call("source", THEME_PATH)
+        style.theme_use(THEME_NAME)
+
+
+        # TODO: Add log stream to program output frame
+        # program_output_frame = ttk.LabelFrame(
+        #     self.root, text="Program Output", padding=(20, 10)
+        # )
+        # program_output_frame.grid(
+        #     row=1, column=0, padx=(20, 10), pady=10, sticky="nsew"
+        # )
+
+        # Init UI state variables
         self.state = UiState(
             url=default_url,
             is_headless=False,
@@ -77,7 +93,7 @@ class ScraperGui:
         self.state.is_working.trace_add("write", self._on_working_changed)
         self.state.url.trace_add("write", self._on_submit_args_changed)
         self.state.output_path.trace_add("write", self._on_submit_args_changed)
-        self.state.output_path.trace_add("write", self._on_output_path_changed)
+        # self.state.output_path.trace_add("write", self._on_output_path_changed)
 
         # Center the window
         self._center_window()
@@ -102,41 +118,47 @@ class ScraperGui:
 
         self.root.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
 
-    def _on_output_path_changed(self, *args: Any):
-        if self.state.output_path.get() == "":
-            self.path_entry.configure(text=self.lang["path_placeholder"], fg="grey")
-        else:
-            self.path_entry.configure(text=self.state.output_path.get(), fg="black")
+    # def _on_output_path_changed(self, *args: Any):
+    #     if self.state.output_path.get() == "":
+    #         self.path_entry.configure(text=self.lang["path_placeholder"], fg="grey")
+    #     else:
+    #         self.path_entry.configure(text=self.state.output_path.get(), fg="black")
 
-    # Enable run button if input is valid
     def _on_submit_args_changed(self, *args: Any):
-        is_ready = not self.state.url.get() or not self.state.output_path.get()
-        self.run_button.configure(state="normal" if not is_ready else "disabled")
+        # Do some basic input validation
+        is_input_valid = (
+            not self.state.url.get().strip() == ""
+            and not self.state.output_path.get()
+            == self.lang["placeholder_save_to_path"]
+            and not self.state.output_path.get().strip() == ""
+        )
+        # Enable run button if input is valid
+        self.run_button.configure(state="normal" if is_input_valid else "disabled")
 
     def show(self):
         self.root.mainloop()
 
-    def create_main_frame(self, root: tk.Tk) -> Frame:
+    def create_main_frame(self, root: tk.Tk) -> ttk.Frame:
         self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(1, weight=1)
 
         MARGIN = 20
 
         # Create spacers for margins
-        tk.Frame(self.root, width=MARGIN + 10).grid(
+        ttk.Frame(self.root, width=MARGIN + 10).grid(
             row=0, column=0, sticky="nsew"
         )  # Left spacer
-        tk.Frame(self.root, width=MARGIN + 10).grid(
+        ttk.Frame(self.root, width=MARGIN + 10).grid(
             row=0, column=2, sticky="nsew"
         )  # Right spacer
-        tk.Frame(self.root, height=MARGIN).grid(
+        ttk.Frame(self.root, height=MARGIN).grid(
             row=0, column=1, sticky="nsew"
         )  # Top spacer
-        tk.Frame(self.root, height=MARGIN).grid(
+        ttk.Frame(self.root, height=MARGIN).grid(
             row=2, column=1, sticky="nsew"
         )  # Bottom spacer
 
-        main_frame = tk.Frame(self.root)
+        main_frame = ttk.Frame(self.root)
         main_frame.grid(row=1, column=1, sticky="nsew")
         main_frame.pack_propagate(
             False
@@ -144,19 +166,17 @@ class ScraperGui:
 
         return main_frame
 
-    def create_title(self, main_frame: Frame) -> Label:
-        title_label = tk.Label(
+    def create_title(self, main_frame: ttk.Frame) -> ttk.Label:
+        title_label = ttk.Label(
             main_frame, text=self.config.program_name, font=("Arial", 16)
         )
         title_label.pack(pady=10, anchor="center")
         return title_label
 
-    def create_url_frame(self, main_frame: Frame):
-        url_frame = Frame(main_frame)
-        url_label = tk.Label(
-            url_frame, text=self.lang["label_url"] + ":", anchor="w", padx=0
-        )
-        url_entry = tk.Entry(url_frame, textvariable=self.state.url)
+    def create_url_frame(self, main_frame: ttk.Frame):
+        url_frame = ttk.Frame(main_frame)
+        url_label = ttk.Label(url_frame, text=self.lang["label_url"] + ":", anchor="w")
+        url_entry = ttk.Entry(url_frame, textvariable=self.state.url)
 
         url_label.grid(row=0, column=0, sticky="w", padx=0)
         url_entry.grid(
@@ -166,26 +186,33 @@ class ScraperGui:
         url_frame.pack(pady=10, fill=tk.X)
         return url_frame, url_label, url_entry
 
-    def create_path_frame(self, main_frame: Frame):
-        path_frame = Frame(main_frame)
-        path_label = tk.Label(
-            path_frame, text=self.lang["label_save_to_path"] + ":", anchor="w", padx=0
+    def create_path_frame(self, main_frame: ttk.Frame):
+        path_frame = ttk.Frame(main_frame)
+        path_label = ttk.Label(
+            path_frame, text=self.lang["label_save_to_path"] + ":", anchor="w"
         )
 
-        # Make a clickable entry label to select a path
-        path_entry = tk.Label(
+        # # Make a clickable entry label to select a path
+        # path_entry = tk.Label(
+        #     path_frame,
+        #     relief="sunken",
+        #     anchor="w",
+        #     fg="grey",
+        #     padx=2,
+        #     textvariable=self.state.output_path,
+        # )
+
+        # # Make label act like a button
+        # path_entry.bind("<Button-1>", self._browse_file_location)
+
+        # Make a readonly entry
+        path_entry = ttk.Entry(
             path_frame,
-            relief="sunken",
-            anchor="w",
-            fg="grey",
-            padx=2,
             textvariable=self.state.output_path,
+            state="readonly",
         )
 
-        # Make label act like a button
-        path_entry.bind("<Button-1>", self._browse_file_location)
-
-        path_browse_button = Button(
+        path_browse_button = ttk.Button(
             path_frame,
             text=self.lang["button_browse"],
             command=self._browse_file_location,
@@ -199,8 +226,8 @@ class ScraperGui:
 
         return path_frame, path_label, path_entry, path_browse_button
 
-    def _create_headless_checkbox(self, main_frame: Frame):
-        headless_checkbox = tk.Checkbutton(
+    def _create_headless_checkbox(self, main_frame: ttk.Frame):
+        headless_checkbox = ttk.Checkbutton(
             main_frame,
             text=self.lang["label_run_headless"],
             variable=self.state.is_headless,
@@ -208,7 +235,7 @@ class ScraperGui:
         headless_checkbox.pack(pady=5, anchor="w")
         return headless_checkbox
 
-    def _create_run_button(self, frame: Frame) -> Button:
+    def _create_run_button(self, frame: ttk.Frame) -> ttk.Button:
         def on_run_button_click() -> None:
             self.state.is_working.set(True)
             self.on_run_scrape(
@@ -222,12 +249,13 @@ class ScraperGui:
             )
 
         # Run button
-        run_button = Button(
+        run_button = ttk.Button(
             frame,
             text=self.lang["button_run"],
             width=20,
             command=on_run_button_click,
             state="disabled",
+            style="Accent.TButton",
         )
         run_button.pack(pady=10, anchor="center")
         return run_button
@@ -297,16 +325,16 @@ class ScraperGui:
         status = "disabled" if self.state.is_working.get() else "normal"
         logger.debug(f"Setting widgets to status: {status}")
         self.url_entry.configure(state=status)
-        self.path_entry.configure(state=status)
+        # self.path_entry.configure(state=status)
         self.path_browse_button.configure(state=status)
         self.headless_checkbox.configure(state=status)
         self.run_button.configure(state=status)
 
         if self.state.is_working.get():
-            self.path_entry.configure(text=self.state.output_path.get(), fg="black")
+            # self.path_entry.configure(text=self.state.output_path.get(), fg="black")
             self.run_button.configure(text=self.lang["button_processing"])
         else:
-            self.path_entry.configure(
-                text=self.lang["placeholder_save_to_path"], fg="grey"
-            )
+            # self.path_entry.configure(
+            #     text=self.lang["placeholder_save_to_path"], fg="grey"
+            # )
             self.run_button.configure(text=self.lang["button_run"])

@@ -1,9 +1,11 @@
 import logging
 import os
 import random
+import threading
 import tkinter as tk
 from dataclasses import dataclass
 from pathlib import Path
+from threading import ExceptHookArgs, Thread
 from tkinter import filedialog, messagebox, ttk
 from typing import Any, Callable
 
@@ -56,7 +58,6 @@ class ScraperGui:
         style = ttk.Style(self.root)
         self.root.tk.call("source", THEME_PATH)
         style.theme_use(THEME_NAME)
-
 
         # TODO: Add log stream to program output frame
         # program_output_frame = ttk.LabelFrame(
@@ -136,7 +137,10 @@ class ScraperGui:
         self.run_button.configure(state="normal" if is_input_valid else "disabled")
 
     def show(self):
-        self.root.mainloop()
+        try:
+            self.root.mainloop()
+        except Exception as e:
+            self._show_error(e)
 
     def create_main_frame(self, root: tk.Tk) -> ttk.Frame:
         self.root.grid_rowconfigure(1, weight=1)
@@ -235,18 +239,37 @@ class ScraperGui:
         headless_checkbox.pack(pady=5, anchor="w")
         return headless_checkbox
 
+    # This will be executed in the background thread i.e. raise exception in this method will not be caught by the main thread
+    def on_thread_exception(self, args: ExceptHookArgs):
+        self._show_error(args.exc_value)  # type: ignore
+        self.state.is_working.set(False)
+        # Reraise exception
+        raise args.exc_type(args.exc_value).with_traceback(
+            args.exc_traceback
+        )  # XXX: Not sure if this works correctly
+
     def _create_run_button(self, frame: ttk.Frame) -> ttk.Button:
         def on_run_button_click() -> None:
+            logger.debug("Run button clicked. Starting scrape in a separate thread...")
             self.state.is_working.set(True)
-            self.on_run_scrape(
-                UiSubmitArgs(
-                    url=self.state.url.get(),
-                    is_headless=self.state.is_headless.get(),
-                    output_path=Path(self.state.output_path.get()),
-                    output_format=OutputFormat.EXCEL,  # XXX: Always excel for now
+
+            # Run the scrape process in a separate thread to keep the UI responsive
+
+            thread = Thread(
+                target=self.on_run_scrape,
+                args=(
+                    UiSubmitArgs(
+                        url=self.state.url.get(),
+                        is_headless=self.state.is_headless.get(),
+                        output_path=Path(self.state.output_path.get()),
+                        output_format=OutputFormat.EXCEL,  # XXX: Always excel for now
+                    ),
+                    self.on_scrape_complete,
                 ),
-                self.on_scrape_complete,
+                daemon=True,  # Kill the thread when the program exits
             )
+            threading.excepthook = self.on_thread_exception
+            thread.start()
 
         # Run button
         run_button = ttk.Button(

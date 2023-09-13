@@ -4,6 +4,7 @@ import random
 import threading
 import time
 import tkinter as tk
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from threading import ExceptHookArgs, Thread
@@ -30,7 +31,19 @@ class LogToWidgetHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         # Enable editing of the text widget in order to insert the log
         self.text_widget.configure(state=tk.NORMAL)
-        self.text_widget.insert(tk.END, record.msg + "\n")
+
+        if record.exc_info:
+            # Format exception
+            exc_type, exc_value, exc_traceback = record.exc_info
+            exc_str = "".join(
+                traceback.format_exception(exc_type, exc_value, exc_traceback)
+            )
+            # Insert exception
+            self.text_widget.insert(tk.END, exc_str + "\n")
+
+        else:
+            self.text_widget.insert(tk.END, str(record.msg) + "\n")
+
         self.text_widget.configure(state=tk.DISABLED)
         self.text_widget.see(tk.END)  # Scroll to the bottom of the text widget
 
@@ -105,7 +118,6 @@ class ScraperGui:
         self.state.is_working.trace_add("write", self._on_working_changed)
         self.state.url.trace_add("write", self._on_submit_args_changed)
         self.state.output_path.trace_add("write", self._on_submit_args_changed)
-        # self.state.output_path.trace_add("write", self._on_output_path_changed)
 
         # Center the window
         self._center_window()
@@ -241,12 +253,9 @@ class ScraperGui:
 
     # This will be executed in the background thread i.e. raise exception in this method will not be caught by the main thread
     def on_thread_exception(self, args: ExceptHookArgs):
-        self._show_error(args.exc_value)  # type: ignore
         self.state.is_working.set(False)
-        # Reraise exception
-        raise args.exc_type(args.exc_value).with_traceback(
-            args.exc_traceback
-        )  # XXX: Not sure if this works correctly
+        logger.exception(args.exc_value)
+        self._show_error(args.exc_value)  # type: ignore
 
     def _create_run_button(self, frame: ttk.Frame) -> ttk.Button:
         def on_run_button_click() -> None:
@@ -342,7 +351,12 @@ class ScraperGui:
 
     # Show a message box with the exception message
     def _show_error(self, exception: Exception):
-        messagebox.showerror("Error", str(exception))  # type: ignore
+        error_message = (
+            f"An error occurred, please see the program log for details.\n\nError message: "
+            + str(exception)
+        )
+
+        messagebox.showerror("Error", error_message)  # type: ignore
 
     # Updates the widgets when working (we cant bind state variables directly to widget states, it seems?)
     def _on_working_changed(self, *args: Any):

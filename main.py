@@ -47,7 +47,7 @@ def use_gui(app_config: AppConfig):
         # Notify UI that scrape is complete
         on_scrape_complete(table)
 
-    ui = ScraperGui(app_config.gui, app_config.url.unicode_string(), on_run_scrape)
+    ui = ScraperGui(app_config.gui, on_run_scrape)
     ui.show()
 
 
@@ -56,15 +56,15 @@ def use_console(app_config: AppConfig):
         raise ValueError("Mode is set to CONSOLE but CONSOLE config is missing")
     logger.debug(f"Using CONSOLE config: {app_config.console}")
 
-    console_config = app_config.console
+    config = app_config.console
     table = scrape(
         ScraperOptions(
-            url=app_config.url.unicode_string(),
-            is_headless=console_config.is_headless,
+            url=config.url.unicode_string(),
+            is_headless=config.is_headless,
             should_uncheck_filter=app_config.should_uncheck_filter,
         ),
-        console_config.output_path,
-        console_config.output_format,
+        config.output_path,
+        config.output_format,
         max_rows=app_config.max_rows,
     )
 

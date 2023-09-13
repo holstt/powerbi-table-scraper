@@ -74,13 +74,11 @@ class ScraperGui:
     def __init__(
         self,
         config: GuiConfig,
-        default_url: str,
         on_run_scrape: Callable[[UiSubmitArgs, Callable[[pd.DataFrame], None]], None],
     ):
         self.lang = utils.load_language(config.language)
         self.config = config
         self.on_run_scrape = on_run_scrape
-        self.default_url = default_url
         self.root = tk.Tk()
         self.root.title(config.program_name)
         self.root.minsize(WIDTH, HEIGHT)
@@ -92,9 +90,13 @@ class ScraperGui:
 
         # Init UI state variables
         self.state = UiState(
-            url=default_url,
-            is_headless=False,
-            output_path=self.lang["placeholder_save_to_path"],
+            url=config.default_values.url.unicode_string()
+            if config.default_values.url
+            else "",
+            is_headless=config.default_values.is_headless,
+            output_path=self.lang["placeholder_save_to_path"]
+            if config.default_values.output_path is None
+            else config.default_values.output_path.absolute().as_posix(),
             is_working=False,
         )
 
@@ -171,16 +173,19 @@ class ScraperGui:
 
         self.root.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
 
-    def _on_submit_args_changed(self, *args: Any):
-        # Do some basic input validation
-        is_input_valid = (
+    def _is_input_valid(self) -> bool:
+        return (
             not self.state.url.get().strip() == ""
+            and not self.state.output_path.get().strip() == ""
             and not self.state.output_path.get()
             == self.lang["placeholder_save_to_path"]
-            and not self.state.output_path.get().strip() == ""
         )
+
+    def _on_submit_args_changed(self, *args: Any):
         # Enable run button if input is valid
-        self.run_button.configure(state=tk.NORMAL if is_input_valid else tk.DISABLED)
+        self.run_button.configure(
+            state=tk.NORMAL if self._is_input_valid() else tk.DISABLED
+        )
 
     def show(self):
         try:
@@ -286,7 +291,7 @@ class ScraperGui:
             text=self.lang["button_run"],
             width=20,
             command=on_run_button_click,
-            state=tk.DISABLED,
+            state=(tk.NORMAL if self._is_input_valid() else tk.DISABLED),
             style="Accent.TButton",
         )
         run_button.pack(pady=10, anchor="center")

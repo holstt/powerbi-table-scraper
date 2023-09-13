@@ -6,15 +6,19 @@ from src.config import OutputFormat
 
 
 def save_csv(df: pd.DataFrame, path: Path) -> Path:
-    path_csv = path.with_suffix(".csv")
-    df.to_csv(path_csv, index=False)
-    return path_csv
+    # Ensure file name ends with .csv (we do not want to risk overwriting a file unintentionally by changing the path suffix)
+    if path.suffix != ".csv":
+        raise ValueError(f"Path must end with .csv, got {path}")
+
+    df.to_csv(path, index=False)
+    return path
 
 
 def save_excel(df: pd.DataFrame, path: Path) -> Path:
-    path_excel = path.with_suffix(".xlsx")
+    if path.suffix != ".xlsx":
+        raise ValueError(f"Path must end with .xlsx, got {path}")
 
-    with pd.ExcelWriter(path_excel) as writer:
+    with pd.ExcelWriter(path) as writer:
         EXTRA_SPACE = 4
         SHEET_NAME = "Sheet1"
 
@@ -28,7 +32,7 @@ def save_excel(df: pd.DataFrame, path: Path) -> Path:
                 col_idx, col_idx, column_length + EXTRA_SPACE
             )
 
-    return path_excel
+    return path
 
 
 def save_table(df: pd.DataFrame, path: Path, format: OutputFormat):

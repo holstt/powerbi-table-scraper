@@ -44,19 +44,43 @@ To set up configuration:
 -   Depending on the mode, the `gui` or `console` section of the config file will be used. The other section will be ignored, but you can keep it in the file if you still want to have the possibility to switch between modes.
 
 ```yml
-mode: gui # or console
-should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck all checkboxes before scraping
-# max_rows: 3 # OPTIONAL (default=None): Uncomment to limit the number of rows scraped (e.g. for testing)
-url: https://app.powerbi.com/XXXXX # # URL to the Power BI report. IF mode=gui, this is the default URL but can be changed in the GUI.
+# EXAMPLE CONFIG FILE
 
-gui:
-    language: en # en or da
-    program_name: PowerBI Table Scraper
+mode: gui # REQUIRED: Options: gui or console
+
+should_uncheck_filter: true # OPTIONAL (default=false): Find checkbox filter and uncheck all checkboxes before scraping
+max_rows: null # OPTIONAL (default=None): Set a maximum number of rows to scrape (e.g. for reducing scraping time during testing)
 
 console:
-    is_headless: false # 'true' hides the the browser window
-    output_path: /path/to/output.ext # Any file extension will be ignored - is determined by output_format
-    output_format: excel # excel or csv
+    url: https://app.powerbi.com/XXXXX # REQUIRED: URL to the Power BI report that should be scraped
+    is_headless: true # OPTIONAL (default=true): 'true' hides the the browser window during scraping
+    output_format: excel # OPTIONAL (default=excel): Options: excel, csv
+    output_path: ./table.xlsx # OPTIONAL (default="./table.xlsx"): File extension should match the output_format (i.e. .xlsx for excel and .csv for csv)
+
+gui:
+    language: en # OPTIONAL (defaul=en): Options: en, da
+    program_name: Power BI Table Scraper # OPTIONAL (defaul=Power BI Table Scraper) The program name that should be displayed in the GUI
+
+    # Default values in the GUI. Can be changed by the user.
+    default_values:
+        url: https://app.powerbi.com/XXXXX # OPTIONAL (default=None): URL to the Power BI report that should be scraped
+        is_headless: true # OPTIONAL (default=true): 'true' hides the the browser window during scraping
+        output_format: excel # OPTIONAL (default=excel): excel or csv
+        output_path: null # OPTIONAL(default=None): User is always required to browse for a valid path before being able to run the scraper unless a default path is specified here. File extension should match the output_format (i.e. .xlsx for excel and .csv for csv)
+```
+
+i.e. the minimum required configuration for the console mode is:
+
+```yml
+mode: console
+console:
+    url: https://app.powerbi.com/XXXXX
+```
+
+and for the GUI mode:
+
+```yml
+mode: gui
 ```
 
 ## Usage

@@ -1,6 +1,7 @@
 {
     "label_url": "URL",
     "label_save_to_path": "Save To",
+    "label_output_format": "File Format",
     "placeholder_save_to_path": "Choose location...",
     "button_browse": "Browse",
     "label_run_headless": "Run in background (no browser)",

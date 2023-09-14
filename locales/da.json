@@ -1,6 +1,7 @@
 {
     "label_url": "URL",
     "label_save_to_path": "Gem Til",
+    "label_output_format": "Filformat",
     "placeholder_save_to_path": "Vælg placering...",
     "button_browse": "Gennemse",
     "label_run_headless": "Kør i baggrunden (uden browser)",

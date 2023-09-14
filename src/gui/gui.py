@@ -21,6 +21,30 @@ from src.config import GuiConfig, OutputFormat
 logger = logging.getLogger(__name__)
 
 
+class UiState:
+    def __init__(
+        self,
+        url: str,
+        is_headless: bool,
+        output_path: str,
+        is_working: bool,
+        output_format: OutputFormat,
+    ):
+        self.url = tk.StringVar(value=url)
+        self.is_headless = tk.BooleanVar(value=is_headless)
+        self.output_path = tk.StringVar(value=output_path)
+        self.is_working = tk.BooleanVar(value=is_working)
+        self.output_format = tk.StringVar(value=output_format.value)
+
+
+@dataclass(frozen=True)
+class UiSubmitArgs:
+    url: str
+    is_headless: bool
+    output_path: Path
+    output_format: OutputFormat
+
+
 # Writes the log to the given text widget
 class LogToWidgetHandler(logging.Handler):
     def __init__(self, widget: tk.Text):
@@ -46,22 +70,6 @@ class LogToWidgetHandler(logging.Handler):
 
         self.text_widget.configure(state=tk.DISABLED)
         self.text_widget.see(tk.END)  # Scroll to the bottom of the text widget
-
-
-class UiState:
-    def __init__(self, url: str, is_headless: bool, output_path: str, is_working: bool):
-        self.url = tk.StringVar(value=url)
-        self.is_headless = tk.BooleanVar(value=is_headless)
-        self.output_path = tk.StringVar(value=output_path)
-        self.is_working = tk.BooleanVar(value=is_working)
-
-
-@dataclass(frozen=True)
-class UiSubmitArgs:
-    url: str
-    is_headless: bool
-    output_path: Path
-    output_format: OutputFormat
 
 
 WIDTH = 600
@@ -96,8 +104,9 @@ class ScraperGui:
             is_headless=config.default_values.is_headless,
             output_path=self.lang["placeholder_save_to_path"]
             if config.default_values.output_path is None
-            else config.default_values.output_path.absolute().as_posix(),
+            else config.default_values.output_path.resolve().as_posix(),
             is_working=False,
+            output_format=config.default_values.output_format,
         )
 
         # Widget setup
@@ -106,6 +115,8 @@ class ScraperGui:
         self.url_frame, self.url_label, self.url_entry = self.create_url_frame(
             main_frame
         )
+        self.format_frame = self._create_format_frame(main_frame)
+
         (
             self.path_frame,
             self.path_label,
@@ -113,13 +124,24 @@ class ScraperGui:
             self.path_browse_button,
         ) = self.create_path_frame(main_frame)
         self.headless_checkbox = self._create_headless_checkbox(main_frame)
-        self.log_frame = self._create_log_frame(main_frame)
-        self.run_button = self._create_run_button(main_frame)
+
+        # TODO: Use grid for all widgets
+        container_frame = ttk.Frame(main_frame)
+        container_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.log_frame = self._create_log_frame(container_frame)
+        self.run_button = self._create_run_button(container_frame)
+        self.log_frame.grid(row=0, column=0, sticky="nsew", pady=10)
+        self.run_button.grid(row=1, column=0, pady=10)
+        container_frame.rowconfigure(0, weight=1)
+        container_frame.columnconfigure(0, weight=1)
+        container_frame.pack(anchor="center", fill=tk.BOTH, expand=True)
 
         # Bind variable changes to widget updates
         self.state.is_working.trace_add("write", self._on_working_changed)
         self.state.url.trace_add("write", self._on_submit_args_changed)
         self.state.output_path.trace_add("write", self._on_submit_args_changed)
+        self.state.output_path.trace_add("write", self._on_output_path_changed)
 
         # Center the window
         self._center_window()
@@ -134,34 +156,57 @@ class ScraperGui:
         # url_entry.configure(background="purple")
         # url_frame.configure(background="cyan")
 
+    def _on_output_path_changed(self, *args: Any):
+        # Move view to end of entry (in case of long path)
+        self.path_entry.xview_moveto(1)
+
+    def _create_format_frame(self, parent: ttk.Frame):
+        format_label = ttk.LabelFrame(parent, text=self.lang["label_output_format"])
+
+        for i, format in enumerate(OutputFormat):
+            # Create radio button
+            format_radiobutton = ttk.Radiobutton(
+                format_label,
+                text=format.value,
+                variable=self.state.output_format,
+                value=format.value,
+            )
+            format_radiobutton.grid(row=0, column=i, padx=10, pady=5, sticky="we")
+
+        format_label.pack(pady=10, anchor="nw", fill=tk.X)
+        return format_label
+
     def _create_log_frame(self, main_frame: ttk.Frame):
-        log_frame = ttk.Frame(
-            main_frame,
-        )
+        log_frame = ttk.Frame(main_frame)
+
         # Label
-        log_label = ttk.Label(log_frame, text=self.lang["label_program_log"] + ":")
-        log_label.pack(anchor="w", pady=(0, 5))
+        log_label = ttk.Label(
+            log_frame,
+            text=self.lang["label_program_log"] + ":",
+        )
+        log_label.grid(row=0, column=0, sticky="nw", padx=0, pady=(0, 5))
 
         # Border: Use entry to get themed border as no Text ttk widget exists
         log_border = ttk.Entry(log_frame, state="readonly")
-        log_border.pack(anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+        log_border.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
 
         # Text with scrollbar and no border
         log_text = ScrolledText(
-            log_border,
+            log_frame,
             state=tk.DISABLED,
             border=0,
             wrap="word",
-            height=10,  # XXX Setting height will cause widget to expand (fill) correctly without pushing widgets below it out of frame. Not sure why
         )
-        log_text.pack(padx=5, pady=5, anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+        log_text.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
-        log_frame.pack(pady=10, anchor=tk.CENTER, fill=tk.BOTH, expand=True)
+        log_frame.rowconfigure(1, weight=1)
+        log_frame.columnconfigure(0, weight=1)
 
-        # Connect to root logger
+        # Connect widget to output of root logger
         root_logger = logging.getLogger()
         handler = LogToWidgetHandler(log_text)
         root_logger.addHandler(handler)
+        return log_frame
 
     def _center_window(self):
         screen_width = self.root.winfo_screenwidth()
@@ -232,6 +277,8 @@ class ScraperGui:
             textvariable=self.state.output_path,
             state="readonly",
         )
+        # Move cursor to end of entry
+        path_entry.xview_moveto(1)
 
         path_browse_button = ttk.Button(
             path_frame,
@@ -243,8 +290,7 @@ class ScraperGui:
         path_entry.grid(row=0, column=1, padx=0, sticky="we")
         path_browse_button.grid(row=0, column=2, padx=(5, 0), sticky="we")
         path_frame.columnconfigure(1, weight=1)  # Let col 1 stretch to fill the frame
-        path_frame.pack(pady=10, fill=tk.X)
-
+        path_frame.pack(pady=10, fill=tk.X, anchor="nw")
         return path_frame, path_label, path_entry, path_browse_button
 
     def _create_headless_checkbox(self, main_frame: ttk.Frame):
@@ -276,7 +322,7 @@ class ScraperGui:
                         url=self.state.url.get(),
                         is_headless=self.state.is_headless.get(),
                         output_path=Path(self.state.output_path.get()),
-                        output_format=OutputFormat.EXCEL,  # XXX: Always excel for now
+                        output_format=OutputFormat(self.state.output_format.get()),
                     ),
                     self.on_scrape_complete,
                 ),
@@ -294,15 +340,29 @@ class ScraperGui:
             state=(tk.NORMAL if self._is_input_valid() else tk.DISABLED),
             style="Accent.TButton",
         )
-        run_button.pack(pady=10, anchor="center")
         return run_button
 
     # Open a file dialog to select a file location
     def _browse_file_location(self, *args: Any):
         logger.debug("Opening file dialog to select a file location")
+
+        # Determine default extension and file types based on output format
+        match self.state.output_format.get():
+            case OutputFormat.EXCEL.value:
+                default_extension = ".xlsx"
+                file_types = [("Excel files", "*.xlsx")]
+            case OutputFormat.CSV.value:
+                default_extension = ".csv"
+                file_types = [("CSV files", "*.csv")]
+            case _:
+                raise ValueError(
+                    f"Invalid output format: {self.state.output_format.get()}"
+                )
+
         filepath_str = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            # initialdir=self.state.output_path.get(), # XXX: Consider using if default path is set
+            filetypes=file_types,
+            defaultextension=default_extension,
         )
         if filepath_str:
             self.state.output_path.set(filepath_str)

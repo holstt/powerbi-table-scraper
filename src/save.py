@@ -1,14 +1,19 @@
+# import log
+import logging
 from pathlib import Path
 
 import pandas as pd
 
 from src.config import OutputFormat
 
+logger = logging.getLogger(__name__)
+
 
 def save_csv(df: pd.DataFrame, path: Path) -> Path:
-    # Ensure file name ends with .csv (we do not want to risk overwriting a file unintentionally by changing the path suffix)
+    # Warn if file name ends with .csv (we do not want to risk overwriting a file unintentionally by changing the path suffix from code)
     if path.suffix != ".csv":
-        raise ValueError(f"Path must end with .csv, got {path}")
+        logger.warning(f"Saving as csv, but file extension is {path.suffix}")
+        # raise ValueError(f"Path must end with .csv, got {path}")
 
     df.to_csv(path, index=False)
     return path
@@ -16,7 +21,8 @@ def save_csv(df: pd.DataFrame, path: Path) -> Path:
 
 def save_excel(df: pd.DataFrame, path: Path) -> Path:
     if path.suffix != ".xlsx":
-        raise ValueError(f"Path must end with .xlsx, got {path}")
+        logger.warning(f"Saving as excel, but file extension is {path.suffix}")
+        # raise ValueError(f"Path must end with .xlsx, got {path}")
 
     with pd.ExcelWriter(path) as writer:
         EXTRA_SPACE = 4

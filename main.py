@@ -26,14 +26,14 @@ def main(app_config: AppConfig):
 
 
 def use_gui(app_config: AppConfig):
-    if app_config.gui is None:
-        raise ValueError("Mode is set to GUI but GUI config is missing")
+    # if app_config.gui is None:
+    #     raise ValueError("Mode is set to GUI but GUI config is missing")
     logger.debug(f"Using GUI config: {app_config.gui}")
 
     def on_run_scrape(
         ui_args: UiSubmitArgs, on_scrape_complete: Callable[[pd.DataFrame], None]
     ):
-        table = scrape(
+        table = scrape_and_save(
             ScraperOptions(
                 url=ui_args.url,
                 is_console_enabled=False,
@@ -57,7 +57,7 @@ def use_console(app_config: AppConfig):
     logger.debug(f"Using CONSOLE config: {app_config.console}")
 
     config = app_config.console
-    table = scrape(
+    table = scrape_and_save(
         ScraperOptions(
             url=config.url.unicode_string(),
             is_headless=config.is_headless,
@@ -69,7 +69,7 @@ def use_console(app_config: AppConfig):
     )
 
 
-def scrape(
+def scrape_and_save(
     options: ScraperOptions,
     save_path: Path,
     save_format: OutputFormat,

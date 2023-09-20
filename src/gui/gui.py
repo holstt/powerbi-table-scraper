@@ -2,7 +2,6 @@ import logging
 import os
 import random
 import threading
-import time
 import tkinter as tk
 import traceback
 from dataclasses import dataclass
@@ -78,45 +77,29 @@ THEME_NAME = "forest-light"
 THEME_PATH = f"./src/gui/theme/{THEME_NAME}.tcl"
 
 
-class ScraperGui:
+class ScraperGui(tk.Tk):
     def __init__(
         self,
         config: GuiConfig,
         on_run_scrape: Callable[[UiSubmitArgs, Callable[[pd.DataFrame], None]], None],
     ):
+        super().__init__()
         self.lang = utils.load_language(config.language)
         self.config = config
         self.on_run_scrape = on_run_scrape
-        self.root = tk.Tk()
-        self.root.title(config.program_name)
-        self.root.minsize(WIDTH, HEIGHT)
 
-        # Load theme
-        style = ttk.Style(self.root)
-        self.root.tk.call("source", THEME_PATH)
-        style.theme_use(THEME_NAME)
+        self.title(config.program_name)
+        self.minsize(WIDTH, HEIGHT)
+        self.load_theme()
+        self.state = self.load_state(config)
 
-        # Init UI state variables
-        self.state = UiState(
-            url=config.default_values.url.unicode_string()
-            if config.default_values.url
-            else "",
-            is_headless=config.default_values.is_headless,
-            output_path=self.lang["placeholder_save_to_path"]
-            if config.default_values.output_path is None
-            else config.default_values.output_path.resolve().as_posix(),
-            is_working=False,
-            output_format=config.default_values.output_format,
-        )
-
-        # Widget setup
-        main_frame = self.create_main_frame(self.root)
-        self.title_label = self.create_title(main_frame)
+        # Create widgets
+        main_frame = self.create_main_frame(self)
+        title_label = self.create_title(main_frame, title=self.config.program_name)
         self.url_frame, self.url_label, self.url_entry = self.create_url_frame(
             main_frame
         )
         self.format_frame = self._create_format_frame(main_frame)
-
         (
             self.path_frame,
             self.path_label,
@@ -124,18 +107,31 @@ class ScraperGui:
             self.path_browse_button,
         ) = self.create_path_frame(main_frame)
         self.headless_checkbox = self._create_headless_checkbox(main_frame)
+        self.log_frame = self._create_log_frame(main_frame)
+        self.run_button = self._create_run_button(main_frame)
 
-        # TODO: Use grid for all widgets
-        container_frame = ttk.Frame(main_frame)
-        container_frame.pack(fill=tk.BOTH, expand=True)
+        # Create layout
+        title_label.grid(row=0, column=0, pady=10)
+        self.url_frame.grid(row=1, column=0, pady=10, sticky="we")
+        self.format_frame.grid(row=2, column=0, pady=10, sticky="we")
+        self.path_frame.grid(row=3, column=0, pady=10, sticky="we")
+        self.headless_checkbox.grid(row=4, column=0, pady=5, sticky="w")
+        self.log_frame.grid(row=5, column=0, pady=10, sticky="nsew")
+        self.run_button.grid(row=6, column=0, pady=10)
 
-        self.log_frame = self._create_log_frame(container_frame)
-        self.run_button = self._create_run_button(container_frame)
-        self.log_frame.grid(row=0, column=0, sticky="nsew", pady=10)
-        self.run_button.grid(row=1, column=0, pady=10)
-        container_frame.rowconfigure(0, weight=1)
-        container_frame.columnconfigure(0, weight=1)
-        container_frame.pack(anchor="center", fill=tk.BOTH, expand=True)
+        main_frame.rowconfigure(5, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.pack(pady=10, padx=30, fill=tk.BOTH, expand=True)
+
+        # Set colors (debug)
+        # self.set_widget_colors(self.root)
+
+        # self.root.configure(background="green")
+        # self.main_frame.configure(background="red")
+        # title_label.configure(background="blue")
+        # url_label.configure(background="yellow")
+        # url_entry.configure(background="purple")
+        # url_frame.configure(background="cyan")
 
         # Bind variable changes to widget updates
         self.state.is_working.trace_add("write", self._on_working_changed)
@@ -146,77 +142,95 @@ class ScraperGui:
         # Center the window
         self._center_window()
 
-        # Set colors (debug)
-        # self.set_widget_colors(self.root)
+    # Init UI state variables
+    def load_state(self, config: GuiConfig) -> UiState:
+        url = (
+            config.default_values.url.unicode_string()
+            if config.default_values.url
+            else ""
+        )
+        output_path = (
+            self.lang["placeholder_save_to_path"]
+            if config.default_values.output_path is None
+            else config.default_values.output_path.resolve().as_posix()
+        )
 
-        # self.root.configure(background="green")
-        # main_frame.configure(background="red")
-        # title_label.configure(background="blue")
-        # url_label.configure(background="yellow")
-        # url_entry.configure(background="purple")
-        # url_frame.configure(background="cyan")
+        return UiState(
+            url=url,
+            is_headless=config.default_values.is_headless,
+            output_path=output_path,
+            is_working=False,
+            output_format=config.default_values.output_format,
+        )
+
+    def load_theme(self):
+        self.tk.call("source", THEME_PATH)
+        style = ttk.Style(self)
+        style.theme_use(THEME_NAME)
 
     def _on_output_path_changed(self, *args: Any):
         # Move view to end of entry (in case of long path)
         self.path_entry.xview_moveto(1)
 
     def _create_format_frame(self, parent: ttk.Frame):
-        format_label = ttk.LabelFrame(parent, text=self.lang["label_output_format"])
+        label_frame = ttk.LabelFrame(parent, text=self.lang["label_output_format"])
 
         for i, format in enumerate(OutputFormat):
             # Create radio button
             format_radiobutton = ttk.Radiobutton(
-                format_label,
+                label_frame,
                 text=format.value,
                 variable=self.state.output_format,
                 value=format.value,
             )
             format_radiobutton.grid(row=0, column=i, padx=10, pady=5, sticky="we")
 
-        format_label.pack(pady=10, anchor="nw", fill=tk.X)
-        return format_label
+        # label_frame.pack(pady=10, anchor="nw", fill=tk.X)
+        return label_frame
 
     def _create_log_frame(self, main_frame: ttk.Frame):
-        log_frame = ttk.Frame(main_frame)
+        frame = ttk.Frame(main_frame)
 
         # Label
         log_label = ttk.Label(
-            log_frame,
+            frame,
             text=self.lang["label_program_log"] + ":",
         )
-        log_label.grid(row=0, column=0, sticky="nw", padx=0, pady=(0, 5))
 
         # Border: Use entry to get themed border as no Text ttk widget exists
-        log_border = ttk.Entry(log_frame, state="readonly")
-        log_border.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
+        log_border = ttk.Entry(frame, state="readonly")
 
         # Text with scrollbar and no border
         log_text = ScrolledText(
-            log_frame,
+            frame,
             state=tk.DISABLED,
             border=0,
             wrap="word",
         )
+
+        # Layout
+        log_label.grid(row=0, column=0, sticky="nw", padx=0, pady=(0, 5))
+        log_border.grid(row=1, column=0, padx=0, pady=0, sticky="nsew")
         log_text.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
-        log_frame.rowconfigure(1, weight=1)
-        log_frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+        frame.columnconfigure(0, weight=1)
 
         # Connect widget to output of root logger
         root_logger = logging.getLogger()
         handler = LogToWidgetHandler(log_text)
         root_logger.addHandler(handler)
-        return log_frame
+        return frame
 
     def _center_window(self):
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
 
         # Calculate Starting X and Y coordinates for Window
         x = (screen_width / 2) - (WIDTH / 2)
         y = (screen_height / 2) - (HEIGHT / 2)
 
-        self.root.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
+        self.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
 
     def _is_input_valid(self) -> bool:
         return (
@@ -234,46 +248,50 @@ class ScraperGui:
 
     def show(self):
         try:
-            self.root.mainloop()
+            self.mainloop()
         except Exception as e:
             self._show_error(e)
 
     def create_main_frame(self, root: tk.Tk) -> ttk.Frame:
         main_frame = ttk.Frame(root)
-        main_frame.pack(pady=10, padx=30, fill=tk.BOTH, expand=True)
         return main_frame
 
-    def create_title(self, main_frame: ttk.Frame) -> ttk.Label:
+    def create_title(self, main_frame: ttk.Frame, title: str) -> ttk.Label:
         title_label = ttk.Label(
             main_frame,
-            text=self.config.program_name,
+            text=title,
             font=("Arial", 16),
         )
-        title_label.pack(pady=10, anchor="center")
+        # title_label.pack(pady=10, anchor="center")
         return title_label
 
+    # TODO: To component please
     def create_url_frame(self, main_frame: ttk.Frame):
+        # Create widgets
         url_frame = ttk.Frame(main_frame)
         url_label = ttk.Label(url_frame, text=self.lang["label_url"] + ":", anchor="w")
         url_entry = ttk.Entry(url_frame, textvariable=self.state.url)
 
+        # Create layout
         url_label.grid(row=0, column=0, sticky="w", padx=0)
         url_entry.grid(
             row=0, column=1, padx=(5, 0), sticky="we"
         )  # Fill the entry horizontally
-        url_frame.columnconfigure(1, weight=1)  # Let col 1 stretch to fill the frame
-        url_frame.pack(pady=10, fill=tk.X)
+        url_frame.columnconfigure(
+            1, weight=1
+        )  # Let url entry (col 1) stretch to fill the frame
+        # url_frame.pack(pady=10, fill=tk.X)
         return url_frame, url_label, url_entry
 
     def create_path_frame(self, main_frame: ttk.Frame):
-        path_frame = ttk.Frame(main_frame)
+        frame = ttk.Frame(main_frame)
         path_label = ttk.Label(
-            path_frame, text=self.lang["label_save_to_path"] + ":", anchor="w"
+            frame, text=self.lang["label_save_to_path"] + ":", anchor="w"
         )
 
         # Make a readonly entry
         path_entry = ttk.Entry(
-            path_frame,
+            frame,
             textvariable=self.state.output_path,
             state="readonly",
         )
@@ -281,7 +299,7 @@ class ScraperGui:
         path_entry.xview_moveto(1)
 
         path_browse_button = ttk.Button(
-            path_frame,
+            frame,
             text=self.lang["button_browse"],
             command=self._browse_file_location,
         )
@@ -289,9 +307,8 @@ class ScraperGui:
         path_label.grid(row=0, column=0, sticky="w", padx=(0, 5))
         path_entry.grid(row=0, column=1, padx=0, sticky="we")
         path_browse_button.grid(row=0, column=2, padx=(5, 0), sticky="we")
-        path_frame.columnconfigure(1, weight=1)  # Let col 1 stretch to fill the frame
-        path_frame.pack(pady=10, fill=tk.X, anchor="nw")
-        return path_frame, path_label, path_entry, path_browse_button
+        frame.columnconfigure(1, weight=1)  # Let col 1 stretch to fill the frame
+        return frame, path_label, path_entry, path_browse_button
 
     def _create_headless_checkbox(self, main_frame: ttk.Frame):
         headless_checkbox = ttk.Checkbutton(
@@ -299,7 +316,6 @@ class ScraperGui:
             text=self.lang["label_run_headless"],
             variable=self.state.is_headless,
         )
-        headless_checkbox.pack(pady=5, anchor="w")
         return headless_checkbox
 
     # This will be executed in the background thread i.e. raise exception in this method will not be caught by the main thread
@@ -401,7 +417,7 @@ class ScraperGui:
     # Show a message box when scraping is complete
     def _show_scrape_complete_dialog(self, table: pd.DataFrame):
         # Play a beep sound
-        self.root.bell()
+        self.bell()
 
         response = messagebox.askyesno(  # type: ignore
             self.lang["title_task_complete"],

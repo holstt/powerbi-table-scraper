@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from time import sleep
 from typing import Optional
 
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -21,7 +22,10 @@ logger = logging.getLogger(__name__)
 # NB! If elements are not certain to appear, we can temporarily lower the implicit wait time if it is safe to do so, and then restore it afterwards
 
 DEFAULT_WAIT = 10  # seconds
+# Present when page is loaded if dashboard not embedded in page
 PAGE_LOADED_CSS_SELECTOR = "transform.bringToFront"
+# iframe present when dashboard embedded in page
+PAGE_EMBED_LOADED_CSS_SELECTOR = "iframe"
 
 
 class ScraperException(Exception):
@@ -67,7 +71,9 @@ class PowerBiScraper:
                 self._filter_scraper.uncheck_filter()
             table = self._table_scraper.execute(max_rows)
         except Exception as e:
-            raise ScraperException("An error occurred while scraping") from e
+            raise ScraperException(
+                f"An exception occurred while scraping: {type(e)}"
+            ) from e
 
         logger.debug("Scraping complete")
         return table
@@ -81,12 +87,16 @@ class PowerBiScraper:
         self._driver.implicitly_wait(0)
 
         # find_elementS to avoid exception if no iframe found
-        iframe = self._driver.find_elements(By.CSS_SELECTOR, "iframe")
-        if iframe:
-            iframe = iframe[0]
-            self._driver.switch_to.frame(iframe)
+        iframes = self._driver.find_elements(By.CSS_SELECTOR, "iframe")
+        logger.debug(f"Found {len(iframes)} iframes")
+        if iframes:
+            iframe = iframes[0]
+
             # Scroll to iframe to ensure it is in view
+            logger.debug("Scrolling to iframe...")
             self._driver.execute_script("arguments[0].scrollIntoView(true);", iframe)
+
+            self._driver.switch_to.frame(iframe)
             logger.debug("Switched to iframe")
         else:
             logger.debug("No iframe found")
@@ -97,10 +107,22 @@ class PowerBiScraper:
     def _load_page(self):
         logger.debug("Loading page...")
         self._driver.get(self._options.url)
-        self._wait.until(
-            EC.presence_of_element_located(  # Do not use visibility_of_element_located, as it may make the page non-interactive
-                (By.CSS_SELECTOR, PAGE_LOADED_CSS_SELECTOR)
-            )  # Present when page is loaded
-        )
+
+        try:
+            self._wait.until(
+                EC.presence_of_element_located(  # Do not use visibility_of_element_located, as it may make the page non-interactive
+                    (By.CSS_SELECTOR, PAGE_LOADED_CSS_SELECTOR)
+                )
+            )
+        except TimeoutException as e:
+            logger.debug(
+                f"Did not find page load element {PAGE_LOADED_CSS_SELECTOR}. Dashboard may be embedded, trying {PAGE_EMBED_LOADED_CSS_SELECTOR}..."
+            )
+            self._wait.until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, PAGE_EMBED_LOADED_CSS_SELECTOR)
+                )
+            )
+
         sleep(1)  # For good measure
         logger.debug("Page loaded")

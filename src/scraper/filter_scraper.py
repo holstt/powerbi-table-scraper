@@ -46,6 +46,7 @@ class FilterScraper:
             actions = ActionChains(self._driver)
 
             for checked_element in checked_elements:
+                # Click to uncheck
                 actions.click(checked_element).pause(ACTION_WAIT)
                 logger.debug(f"Will uncheck checkbox with text: {checked_element.text}")
 

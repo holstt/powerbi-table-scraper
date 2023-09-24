@@ -121,11 +121,11 @@ class MainWidget(ttk.Frame):
         threading.excepthook = self.on_thread_exception
         thread.start()
 
-    # This will be executed in the background thread i.e. raise exception in this method will not be caught by the main thread
+    # This will be executed in the background thread i.e. raising an exception in this method will not be caught by the main thread
     def on_thread_exception(self, args: ExceptHookArgs):
         self.ui_state.is_processing.set(False)
         logger.exception(args.exc_value)
-        self._show_error(args.exc_value)  # type: ignore
+        gui_utils.show_error(args.exc_value)  # type: ignore
 
     def on_scrape_complete(self, table: pd.DataFrame):
         logger.debug("Showing scrape complete dialog")

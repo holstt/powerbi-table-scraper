@@ -20,7 +20,7 @@ def scrape_and_save(
 ) -> pd.DataFrame:
     scraper = PowerBiScraper(options, CustomDriver(options))
     table = scraper.scrape(max_rows=max_rows)
-    scraper.close()  # XXX: Choose to browser keep open?
+    scraper.close()  # XXX: Choose to browser keep open? E.g. when debugging
     save_path = save_table(table, save_path, save_format)
     logger.info(f"Table saved to {save_path.absolute()}")
     return table

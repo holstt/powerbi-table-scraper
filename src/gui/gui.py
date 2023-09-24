@@ -5,6 +5,7 @@ from typing import Callable
 
 import pandas as pd
 
+import src.gui.gui_utils as gui_utils
 import src.utils as utils
 from src.config import GuiConfig
 from src.gui.gui_state import UiState
@@ -46,7 +47,7 @@ class ScraperGui(tk.Tk):
         try:
             self.mainloop()
         except Exception as e:
-            self._show_error(e)
+            gui_utils.show_error(e)
 
     # Init UI state variables
     # XXX: Move to state ctor?
@@ -85,12 +86,3 @@ class ScraperGui(tk.Tk):
         y = (screen_height / 2) - (HEIGHT / 2)
 
         self.geometry("%dx%d+%d+%d" % (WIDTH, HEIGHT, x, y))
-
-    # Show a message box with the exception message
-    def _show_error(self, exception: Exception):
-        error_message = (
-            f"An error occurred, please see the program log for details.\n\nError message: "
-            + str(exception)
-        )
-
-        messagebox.showerror("Error", error_message)  # type: ignore

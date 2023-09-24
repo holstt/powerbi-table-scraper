@@ -1,7 +1,17 @@
 import random
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from typing import Any, Literal, Optional
+
+
+# Show a message box with the exception message
+def show_error(exception: Exception):
+    error_message = (
+        f"An error occurred, please see the program log for details.\n\nError message: "
+        + str(exception)
+    )
+
+    messagebox.showerror("Error", error_message)  # type: ignore
 
 
 def bool_to_state(bool: tk.BooleanVar):

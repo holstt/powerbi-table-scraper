@@ -1,0 +1,15 @@
+{
+    "label_url": "URL",
+    "label_save_to_path": "Save To",
+    "label_output_format": "File Format",
+    "placeholder_save_to_path": "Choose location...",
+    "button_browse": "Browse",
+    "label_run_headless": "Run in background (no browser)",
+    "label_program_log": "Program Log",
+    "button_run": "Run",
+    "title_task_complete": "Task Complete",
+    "message_task_complete": "Scraping complete: Found {rows_scraped} rows and {columns_scraped} columns. Do you want to open the file location of the saved table?",
+    "button_processing": "Working...",
+    "button_yes": "Yes",
+    "button_no": "No"
+}

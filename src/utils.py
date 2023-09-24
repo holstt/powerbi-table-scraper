@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import time
 from pathlib import Path
@@ -11,6 +12,10 @@ def setup_logging(level: int = logging.INFO):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logging.Formatter.converter = time.gmtime  # Use UTC
+
+    # Avoid getting debug logs from external modules
+    logging.getLogger("selenium").setLevel(logging.INFO)
+    logging.getLogger("urllib3").setLevel(logging.INFO)
 
 
 def get_config_path_from_args():
@@ -30,3 +35,10 @@ def get_args():
     )
     args = vars(ap.parse_args())
     return args
+
+
+# Load language strings from a JSON file
+def load_language(lang_code: str) -> dict[str, str]:
+    with open(f"./locales/{lang_code}.json", "r", encoding="utf-8") as file:
+        lang: dict[str, str] = json.load(file)
+        return lang

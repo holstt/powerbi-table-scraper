@@ -1,0 +1,15 @@
+{
+    "label_url": "URL",
+    "label_save_to_path": "Gem Til",
+    "label_output_format": "Filformat",
+    "placeholder_save_to_path": "Vælg placering...",
+    "button_browse": "Gennemse",
+    "label_run_headless": "Kør i baggrunden (uden browser)",
+    "label_program_log": "Programlog",
+    "button_run": "Kør",
+    "title_task_complete": "Opgave Fuldført",
+    "message_task_complete": "Scraping er færdig: Fandt {rows_scraped} rækker og {columns_scraped} kolonner. Vil du åbne filplaceringen for den gemte tabel?",
+    "button_processing": "Arbejder...",
+    "yes_button": "Ja",
+    "button_no": "Nej"
+}
